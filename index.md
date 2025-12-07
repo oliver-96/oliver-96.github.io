@@ -1,6 +1,9 @@
 ---
-layout: home
+layout: page
+title: Home
+permalink: /
 ---
 
-# Welcome Blog
-Test
+# Hello
+
+text
