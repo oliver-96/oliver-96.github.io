@@ -1,8 +1,12 @@
 theme: jekyll-theme-minimal
 title: Moving Designs
 description: Somewhere for projects I'm working on
-theme: minima
 
+remote_theme: jekyll/minima
+
+plugins:
+  - jekyll-remote-theme
+  
 minima:
   skin: dark
 
