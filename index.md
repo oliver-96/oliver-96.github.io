@@ -4,5 +4,4 @@ title: About
 permalink: /
 ---
 
-# Hello
-text
+Somewhere to write about projects I've worked. Mostly engineering / coding based but also anything else I find interesting.
