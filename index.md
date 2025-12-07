@@ -4,4 +4,4 @@ title: About
 permalink: /
 ---
 
-Somewhere to write about projects I've worked. Mostly engineering / coding based but also anything else I find interesting.
+Somewhere to write about projects I've worked on, mostly engineering / coding based but also anything else I find interesting.
