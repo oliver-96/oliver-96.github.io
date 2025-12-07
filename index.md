@@ -1,7 +1,7 @@
 ---
 layout: home
-title: "Welcome"
+title: "Home"
 ---
 
-# Test
-test
+# Welcome Blog
+Test
