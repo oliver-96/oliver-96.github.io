@@ -1,9 +1,8 @@
 ---
 layout: page
-title: Home
+title: about
 permalink: /
 ---
 
-# Hello
-
+<h1 style="text-align: left;">Hello</h1>
 text
