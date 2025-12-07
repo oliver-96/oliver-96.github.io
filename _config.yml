@@ -1,6 +1,5 @@
 theme: jekyll-theme-minimal
 title: Moving Designs
-description: Somewhere for projects I'm working on
 
 remote_theme: jekyll/minima
 
@@ -12,5 +11,3 @@ minima:
 
 header_pages:
   - index.md
-
-# show_excerpts: true
