@@ -15,6 +15,7 @@
     color: #e5e7eb;
     
   }
+
   #controls {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -28,6 +29,7 @@
   label {
     display: block;
   }
+
 </style>
 </head>
 
@@ -330,7 +332,7 @@ function draw() {
 
   Plotly.react("plot", data, layout, {
   displayModeBar: false,
-  staticPlot: false
+  staticPlot: true
   });
 }
 
