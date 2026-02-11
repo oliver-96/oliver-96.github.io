@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cycloid Explorer</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<style>
+  body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 10px;
+    overflow: hidden;
+    background-color: #333030;
+    color: #e5e7eb;
+  }
+
+  #controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .control {
+    font-size: 14px;
+  }
+
+  label {
+    display: block;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="controls">
+  <div class="control">
+    <label>k = R / r: <span id="kVal">1</span></label>
+    <input type="range" id="k" min="0" max="10" step="0.1" value="1">
+  </div>
+
+  <div class="control">
+    <label>a: <span id="aVal">1</span></label>
+    <input type="range" id="a" min="0" max="10" step="0.1" value="1">
+  </div>
+
+  <div class="control">
+    <label>Speed: <span id="speedVal">0.2</span></label>
+    <input type="range" id="speed" min="0" max="1" step="0.05" value="0.2">
+  </div>
+
+  <div class="control">
+    <label>Mode</label>
+    <label><input type="radio" name="mode" value="epicycloid" checked> Epicycloid</label>
+    <label><input type="radio" name="mode" value="hypocycloid"> Hypocycloid</label>
+  </div>
+
+  <div class="control">
+    <label>Trace</label>
+    <label><input type="checkbox" id="traceOn"> Enable trace</label>
+    <label>Length: <span id="traceLenVal">300</span></label>
+    <input type="range" id="traceLen" min="50" max="2000" step="50" value="300">
+  </div>
+
+  <div class="control">
+    <label>Presets</label>
+    <button onclick="applyPreset('triangle')">Triangle</button>
+    <button onclick="applyPreset('square')">Square</button>
+    <button onclick="applyPreset('line')">Line</button>
+  </div>
+</div>
+
+<div id="plot" style="width:100%;height:600px;"></div>
+
+<script>
+const r = 1;
+const axisFactor = 1.2;
+
+// full curve sampling
+const tFull = Array.from({ length: 2000 }, (_, i) => i * 20 * Math.PI / 1999);
+
+const presets = {
+  triangle: { k: 3, a: 0.6, speed: 0.2, mode: "hypocycloid" },
+  square:   { k: 4, a: 0.5, speed: 0.2, mode: "hypocycloid" },
+  line:     { k: 2, a: 1,   speed: 0.2, mode: "hypocycloid" }
+};
+
+function cycloidCurve(t, R, r, a, mode) {
+  if (mode === "epicycloid") {
+    return {
+      x: (R + r) * Math.cos(t) - a * Math.cos(((R + r) / r) * t),
+      y: (R + r) * Math.sin(t) - a * Math.sin(((R + r) / r) * t)
+    };
+  } else {
+    return {
+      x: (R - r) * Math.cos(t) + a * Math.cos(((R - r) / r) * t),
+      y: (R - r) * Math.sin(t) - a * Math.sin(((R - r) / r) * t)
+    };
+  }
+}
+
+function getMode() {
+  return document.querySelector('input[name="mode"]:checked').value;
+}
+
+function applyPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+  kSlider.value = p.k;
+  aSlider.value = p.a;
+  speedSlider.value = p.speed;
+  document.querySelector(`input[value="${p.mode}"]`).checked = true;
+  resetTrace();
+  updateLabels();
+}
+
+const kSlider = document.getElementById("k");
+const aSlider = document.getElementById("a");
+const speedSlider = document.getElementById("speed");
+const traceOn = document.getElementById("traceOn");
+const traceLenSlider = document.getElementById("traceLen");
+
+function updateLabels() {
+  kVal.textContent = kSlider.value;
+  aVal.textContent = aSlider.value;
+  speedVal.textContent = speedSlider.value;
+  traceLenVal.textContent = traceLenSlider.value;
+}
+
+kSlider.oninput =
+aSlider.oninput =
+speedSlider.oninput =
+traceLenSlider.oninput = updateLabels;
+
+updateLabels();
+
+let theta = 0;
+let traceX = [];
+let traceY = [];
+
+function resetTrace() {
+  traceX = [];
+  traceY = [];
+}
+
+traceOn.onchange = resetTrace;
+kSlider.onchange = resetTrace;
+aSlider.onchange = resetTrace;
+
+function computeFullCurve() {
+  const k = +kSlider.value;
+  const a = +aSlider.value;
+  const R = k * r;
+  const mode = getMode();
+
+  const x = [];
+  const y = [];
+
+  for (const t of tFull) {
+    const p = cycloidCurve(t, R, r, a, mode);
+    x.push(p.x);
+    y.push(p.y);
+  }
+  return { x, y, R, a, mode };
+}
+
+function draw() {
+  const { x, y, R, a, mode } = computeFullCurve();
+
+  const staticCentre = (mode === "hypocycloid") ? (R - r) : (R + r);
+  const cx = staticCentre * Math.cos(theta);
+  const cy = staticCentre * Math.sin(theta);
+
+  const p = cycloidCurve(theta, R, r, a, mode);
+
+  if (traceOn.checked) {
+    traceX.push(p.x);
+    traceY.push(p.y);
+
+    const maxLen = +traceLenSlider.value;
+    if (traceX.length > maxLen) {
+      traceX.shift();
+      traceY.shift();
+    }
+  }
+
+  const maxRange =
+    mode === "epicycloid"
+      ? (R + Math.max(2*r, a + r)) * axisFactor
+      : Math.max(R, R - r + a) * axisFactor;
+
+  const data = [];
+
+  if (traceOn.checked) {
+    data.push({
+      x, y,
+      mode: "lines",
+      line: { color: "red", width: 2 }
+    });
+
+    data.push({
+      x: traceX,
+      y: traceY,
+      mode: "lines",
+      line: { color: "white", width: 1 }
+    });
+  }
+
+  data.push(
+    {
+      x: Array.from({length:200},(_,i)=>R*Math.cos(2*Math.PI*i/199)),
+      y: Array.from({length:200},(_,i)=>R*Math.sin(2*Math.PI*i/199)),
+      mode: "lines",
+      line: { color: "white" }
+    },
+    {
+      x: Array.from({length:200},(_,i)=>cx+r*Math.cos(2*Math.PI*i/199)),
+      y: Array.from({length:200},(_,i)=>cy+r*Math.sin(2*Math.PI*i/199)),
+      mode: "lines",
+      line: { color: "white" }
+    },
+    {
+      x: [p.x],
+      y: [p.y],
+      mode: "markers",
+      marker: { size: 10, color: "white" }
+    },
+    {
+      x: [cx],
+      y: [cy],
+      mode: "markers",
+      marker: { size: 6, color: "white" }
+    },
+    {
+      x: [cx, p.x],
+      y: [cy, p.y],
+      mode: "lines",
+      line: { color: "white" }
+    }
+  );
+
+  Plotly.react("plot", data, {
+    paper_bgcolor: "#111",
+    plot_bgcolor: "#111",
+    margin: { t: 10, b: 10, l: 10, r: 10 },
+    xaxis: { visible: false, range: [-maxRange, maxRange] },
+    yaxis: { visible: false, range: [-maxRange, maxRange], scaleanchor: "x" },
+    showlegend: false
+  }, { displayModeBar: false });
+}
+
+function animate() {
+  theta += (2 * Math.PI * +speedSlider.value) / 80;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+draw();
+animate();
+</script>
+
+</body>
+</html>

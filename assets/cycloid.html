@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cycloid Explorer</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 10px;
+    overflow: hidden;
+
+    background-color: #333030;
+    color: #e5e7eb;
+    
+  }
+  #controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .control {
+    font-size: 14px;
+  }
+  label {
+    display: block;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="controls">
+  <div class="control">
+    <label>k = R / r: <span id="kVal">1</span></label>
+    <input type="range" id="k" min="0" max="10" step="0.1" value="1">
+  </div>
+
+  <div class="control">
+    <label>a: <span id="aVal">1</span></label>
+    <input type="range" id="a" min="0" max="10" step="0.1" value="1">
+  </div>
+
+  <div class="control">
+    <label>Speed: <span id="speedVal">0.2</span></label>
+    <input type="range" id="speed" min="0" max="1" step="0.05" value="0.2">
+  </div>
+
+  <div class="control">
+    <label>Trace: <span id="traceVal">100</span></label>
+    <input type="range" id="trace" min="1" max="500" step="1" value="100">
+  </div>
+
+  <div class="control">
+    <label>Mode</label>
+    <label><input type="radio" name="mode" value="epicycloid" checked> Epicycloid</label>
+    <label><input type="radio" name="mode" value="hypocycloid"> Hypocycloid</label>
+  </div>
+
+  <div class="control">
+    <label>Drawing</label>
+    <label><input type="radio" name="drawing" value="static" checked> Static</label>
+    <label><input type="radio" name="drawing" value="trace"> Trace</label>
+  </div>
+
+  <div class="control">
+    <label>Presets</label>
+    <button onclick="applyPreset('triangle')">Triangle</button>
+    <button onclick="applyPreset('square')">Square</button>
+    <button onclick="applyPreset('line')">Line</button>
+    <button onclick="applyPreset('gearbox')">Gearbox</Gearbox>
+  </div>
+</div> 
+
+<div id="plot" style="width:100%;height:600px;"></div>
+
+<script>
+const r = 1;
+const axisFactor = 1.2;
+const array_length = 2000;
+const tVals = Array.from({length: array_length}, (_, i) => i * 20 * Math.PI / 1999);
+
+const presets = {
+  triangle: {
+    k: 3,
+    a: 0.6,
+    speed: 0.2,
+    mode: "hypocycloid",
+    drawing: "static"
+  },
+  square: {
+    k: 4,
+    a: 0.5,
+    speed: 0.2,
+    mode: "hypocycloid",
+    drawing: "static"
+  },
+  line: {
+    k: 2,
+    a: 1,
+    speed: 0.2,
+    mode: "hypocycloid",
+    drawing: "static"
+  },
+  gearbox: {
+    k: 2.8,
+    a: 2.4,
+    speed: 0.6,
+    trace: 150,
+    mode: "hypocycloid",
+    drawing: "trace"
+  }
+};
+
+function cycloidCurve(t, R, r, a, mode) {
+  if (mode === "epicycloid") {
+    return {
+      x: (R + r) * Math.cos(t) - a * Math.cos(((R + r) / r) * t),
+      y: (R + r) * Math.sin(t) - a * Math.sin(((R + r) / r) * t)
+    };
+  } else {
+    return {
+      x: (R - r) * Math.cos(t) + a * Math.cos(((R - r) / r) * t),
+      y: (R - r) * Math.sin(t) - a * Math.sin(((R - r) / r) * t)
+    };
+  }
+}
+
+function resetTrace() {
+  traceX = [];
+  traceY = [];
+}
+
+function getMode() {
+  return document.querySelector('input[name="mode"]:checked').value;
+}
+
+document.querySelectorAll('input[name="mode"]').forEach(radio => {
+  radio.addEventListener("change", () => {
+    resetTrace();
+  });
+});
+
+function getDrawingMode() {
+  return document.querySelector('input[name="drawing"]:checked').value;
+}
+
+function applyPreset(name) {
+  const p = presets[name];
+  resetTrace()
+  if (!p) return;
+
+  // sliders
+  kSlider.value = p.k;
+  aSlider.value = p.a;
+  speedSlider.value = p.speed;
+  traceSlider.value = p.trace || traceSlider.value;
+  
+
+  // radio buttons
+  document
+    .querySelector(`input[name="mode"][value="${p.mode}"]`)
+    .checked = true;
+
+  document
+    .querySelector(`input[name="drawing"][value="${p.drawing}"]`)
+    .checked = true;
+    
+
+  updateLabels();
+  draw();
+}
+
+
+function computeCurve() {
+  const k = +kSlider.value;
+  const a = +aSlider.value;
+  const R = k * r;
+  const mode = getMode();
+ 
+
+  const x = [];
+  const y = [];
+
+  for (const t of tVals) {
+    const p = cycloidCurve(t, R, r, a, mode);
+    x.push(p.x);
+    y.push(p.y);
+  }
+
+  return { x, y, R, a, mode };
+}
+
+const kSlider = document.getElementById("k");
+const aSlider = document.getElementById("a");
+const speedSlider = document.getElementById("speed");
+const traceSlider = document.getElementById("trace");
+
+function updateLabels() {
+  kVal.textContent = kSlider.value;
+  aVal.textContent = aSlider.value;
+  speedVal.textContent = speedSlider.value;
+  traceVal.textContent = traceSlider.value;
+}
+
+
+kSlider.oninput = () => {
+  updateLabels();
+  resetTrace();
+};
+
+aSlider.oninput = () => {
+  updateLabels();
+  resetTrace();
+};
+
+traceSlider.oninput = () => {
+  updateLabels();
+};
+
+speedSlider.oninput = updateLabels;
+
+let theta = 0;
+let traceX = [];
+let traceY = [];
+trace_length = traceSlider.value;
+
+function draw() {
+  const { x, y, R, a, mode } = computeCurve();
+
+  const staticCentre = (mode === "hypocycloid") ? (R - r) : (R + r);
+  const cx = staticCentre * Math.cos(theta);
+  const cy = staticCentre * Math.sin(theta);
+
+  const p = cycloidCurve(theta, R, r, a, mode);
+  const p_opp = cycloidCurve(theta, R, r, -1, mode);
+
+
+   traceX.push(p.x);
+   traceY.push(p.y);
+   trace_length = +traceSlider.value;
+
+   if (traceX.length > trace_length) {
+    traceX = traceX.slice(-trace_length);
+    traceY = traceY.slice(-trace_length);
+}
+
+
+  const maxRange =
+    mode === "epicycloid"
+      ? (R + Math.max(2*r, a + r)) * axisFactor
+      : Math.max(R, R - r + a) * axisFactor;
+
+    if (getDrawingMode() === "trace") {
+        curve = { x: traceX, y: traceY, type: "scatter", mode: "lines", line: { color: "red" } }
+    } else {
+        curve = { x, y, type: "scatter", mode: "lines", line: { color: "red" } }
+    }
+
+  const data = [
+    // Cycloid curve
+    curve,
+
+    // Sun circle
+    {
+      x: Array.from({length: 200}, (_, i) => R * Math.cos(2*Math.PI*i/199)),
+      y: Array.from({length: 200}, (_, i) => R * Math.sin(2*Math.PI*i/199)),
+      mode: "lines",
+      line: { color: "white" }
+    },
+
+    // Planet center
+    {
+      x: Array.from({length: 200}, (_, i) => cx + r * Math.cos(2*Math.PI*i/199)),
+      y: Array.from({length: 200}, (_, i) => cy + r * Math.sin(2*Math.PI*i/199)),
+    //   x: [cx],
+    //   y: [cy],
+      mode: "lines",
+      marker: { color: "white" }
+    },
+
+    // Trace point
+    {
+      x: [p.x],
+      y: [p.y],
+      mode: "markers",
+      marker: { size: 12, color: "white" }
+    },
+
+    // Trace point opposite
+    {
+      x: [p_opp.x],
+      y: [p_opp.y],
+      mode: "markers",
+      marker: { size: 8, color: "white" }
+    },
+
+    // Centre point
+    {
+      x: [cx],
+      y: [cy],
+      mode: "markers",
+      marker: { size: 6, color: "white" }
+    },
+
+    // Connecting line
+    {
+      x: [cx, p.x],
+      y: [cy, p.y],
+      mode: "lines",
+      line: { color: "white", width: 2 }
+    }
+
+
+
+  ];
+
+  const layout = {
+    paper_bgcolor: "#111",   // outer background
+    plot_bgcolor: "#111",    // plot area background
+    margin: { t: 10, b: 10, l: 10, r: 10 },
+    xaxis: { visible: false, range: [-maxRange, maxRange] },
+    yaxis: { visible: false, range: [-maxRange, maxRange], scaleanchor: "x" },
+    showlegend: false,
+    hovermode: false,
+  };
+
+  Plotly.react("plot", data, layout, {
+  displayModeBar: false,
+  staticPlot: false
+  });
+}
+
+function animate() {
+  const speed = +speedSlider.value;
+  theta += (2 * Math.PI * speed) / 80;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+draw();
+animate();
+</script>
+
+</body>
+</html>
